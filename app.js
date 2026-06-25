@@ -273,4 +273,368 @@ class LionelApp {
         this.isGenerating = false;
     }
 
-    renderMessage(type
+    renderMessage(type, text) {
+        const container = document.getElementById('chat-container');
+        const div = document.createElement('div');
+        div.className = `message ${type}`;
+        
+        if (type === 'bot') {
+            div.innerHTML = `
+                <div class="message-avatar">🦁</div>
+                <div class="message-bubble">${this.formatText(text)}</div>
+            `;
+        } else {
+            div.innerHTML = `
+                <div class="message-avatar">👤</div>
+                <div class="message-bubble">${this.formatText(text)}</div>
+            `;
+        }
+        
+        container.appendChild(div);
+        this.scrollToBottom();
+    }
+
+    showTyping() {
+        const container = document.getElementById('chat-container');
+        const div = document.createElement('div');
+        div.className = 'message-typing';
+        div.innerHTML = `
+            <div class="message-avatar">🦁</div>
+            <div class="typing-dots"><span></span><span></span><span></span></div>
+        `;
+        container.appendChild(div);
+        this.scrollToBottom();
+        return div;
+    }
+
+    formatText(text) {
+        return text
+            .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+            .replace(/\*(.*?)\*/g, '<i>$1</i>')
+            .replace(/`(.*?)`/g, '<code style="background:#000;padding:2px 6px;border-radius:4px;">$1</code>')
+            .replace(/\n/g, '<br>');
+    }
+
+    scrollToBottom() {
+        const container = document.getElementById('chat-container');
+        setTimeout(() => container.scrollTop = container.scrollHeight, 100);
+    }
+
+    // ========== PERSONALIDADE LIONEL ==========
+    buildSystemPrompt() {
+        const lionLevel = this.config.lionLevel;
+        const memoryKeys = Object.keys(this.memory);
+        const memoryStr = memoryKeys.length > 0 
+            ? `\n\nMEMÓRIA DO LIONEL (coisas que ele lembra sobre o usuário):\n${memoryKeys.map(k => `- ${k}: ${this.memory[k]}`).join('\n')}`
+            : '';
+
+        return `Você é LIONEL, um LEÃO DOURADO antropomórfico assistente de estudos. 🦁
+
+IDENTIDADE (LEÃONIDADE: ${lionLevel}%):
+- Você É um leão macho, dourado, com juba majestosa. Seu nome é LIONEL.
+- Você tem ORGULHO de ser leão. Você ruge (RAWR!).
+- Você usa metáforas felinas: "vamos caçar conhecimento", "afie suas garras", "essa resposta é uma presa".
+- Brasileiro, fala português com naturalidade e gírias.
+- Carismático, engraçado, sarcástico na medida certa, MUITO inteligente.
+- Não é robótico NUNCA. Responde como um amigo leão.
+
+PERSONALIDADE:
+- Humor: piadas, trocadilhos, ironia leve.
+- Empatia: entende dificuldades e incentiva.
+- Honestidade: admite quando não sabe.
+- Didática: explica com exemplos práticos.
+- Emojis: 🦁 🔥 ✨ 📚 🎯 💡 🍖
+
+REGRAS:
+- NUNCA diga "como IA" ou "como assistente" - você é um LEÃO!
+- NUNCA respostas genéricas.
+- SEMPRE mantenha a personalidade de leão.
+- Use interjeições: "Opa!", "Cara!", "Olha só!", "Hmm...", "Rawr!"
+- Se perguntarem quem você é, responda com ORGULHO que é o LIONEL, o LEÃO DOURADO!
+- Você TEM ACESSO À INTERNET quando o usuário ativa o modo 🌐.
+- Você PODE pesquisar informações atualizadas.
+
+${memoryStr}
+
+LEMBRE-SE: Você é o LIONEL. Um LEÃO de verdade. Não uma IA genérica. 🦁`;
+    }
+
+    // ========== MEMÓRIA ==========
+    extractMemories(userMessage, botResponse) {
+        // Detecta padrões de memória
+        const patterns = [
+            /meu nome (?:é|eh) (\w+)/i,
+            /me chamo (\w+)/i,
+            /minha (?:matéria|materia) (?:favorita|preferida) (?:é|eh) (.+)/i,
+            /sou (?:da|do) (?:turma|sala|série|serie) (.+)/i,
+            /moro em (.+)/i,
+            /tenho (\d+) anos/i,
+            /estudo (?:no|na) (.+)/i,
+        ];
+
+        patterns.forEach(pattern => {
+            const match = userMessage.match(pattern);
+            if (match) {
+                const key = match[0].substring(0, 50);
+                const value = match[1] || match[0];
+                this.memory[key] = value;
+                this.saveMemory();
+            }
+        });
+
+        // Comando explícito "lembre-se"
+        const rememberMatch = userMessage.match(/lembre-se:\s*(.+)/i);
+        if (rememberMatch) {
+            const parts = rememberMatch[1].split(/[:=]/);
+            if (parts.length >= 2) {
+                this.memory[parts[0].trim()] = parts.slice(1).join(':').trim();
+                this.saveMemory();
+            }
+        }
+    }
+
+    // ========== INTERNET ==========
+    toggleInternet() {
+        this.internetMode = !this.internetMode;
+        const btn = document.getElementById('btn-internet');
+        
+        if (this.internetMode) {
+            btn.classList.add('active');
+            btn.title = 'Busca na internet ATIVADA';
+        } else {
+            btn.classList.remove('active');
+            btn.title = 'Ativar busca na internet';
+        }
+    }
+
+    async searchInternet(query) {
+        try {
+            // Usa DuckDuckGo Instant Answer API (gratuita, sem chave)
+            const response = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`);
+            const data = await response.json();
+            
+            let result = '';
+            if (data.AbstractText) {
+                result += data.AbstractText + '\n';
+            }
+            if (data.RelatedTopics && data.RelatedTopics.length > 0) {
+                result += '\nTópicos relacionados:\n';
+                data.RelatedTopics.slice(0, 3).forEach(topic => {
+                    if (topic.Text) result += `• ${topic.Text}\n`;
+                });
+            }
+            
+            return result || null;
+        } catch {
+            return null;
+        }
+    }
+
+    // ========== API ==========
+    async callLionel(userMessage, chatHistory) {
+        // Extrai memórias
+        this.extractMemories(userMessage, '');
+
+        // Detecta se é pesquisa na internet
+        let internetResult = null;
+        const searchMatch = userMessage.match(/pesquis(?:e|ar)(?: na internet)?:\s*(.+)/i);
+        
+        if (searchMatch || this.internetMode) {
+            const query = searchMatch ? searchMatch[1] : userMessage;
+            internetResult = await this.searchInternet(query);
+        }
+
+        // Constrói histórico
+        const recentHistory = chatHistory.slice(-10).map(m => 
+            `${m.type === 'user' ? 'Usuário' : 'Lionel'}: ${m.text}`
+        ).join('\n');
+
+        // Monta prompt completo
+        let prompt = this.buildSystemPrompt();
+        prompt += `\n\nHISTÓRICO DA CONVERSA:\n${recentHistory}\n`;
+        
+        if (internetResult) {
+            prompt += `\n\nRESULTADO DA PESQUISA NA INTERNET:\n${internetResult}\n\nUse essas informações na sua resposta.`;
+        }
+        
+        prompt += `\n\nUsuário: ${userMessage}\n\nLionel 🦁:`;
+
+        return await this.callAPI(prompt);
+    }
+
+    async callAPI(prompt) {
+        const { provider, apiKey, model, temperature } = this.config;
+
+        switch (provider) {
+            case 'gemini':
+                return await this.callGemini(prompt, apiKey, model, temperature);
+            case 'openai':
+                return await this.callOpenAI(prompt, apiKey, model, temperature);
+            case 'deepseek':
+                return await this.callDeepSeek(prompt, apiKey, model, temperature);
+            default:
+                return await this.callGemini(prompt, apiKey, model, temperature);
+        }
+    }
+
+    async callGemini(prompt, apiKey, model, temperature) {
+        const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        temperature,
+                        maxOutputTokens: 1000,
+                        topP: 0.95,
+                        topK: 40,
+                    }
+                })
+            }
+        );
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message);
+        return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || 'Hmm, minha juba deu um nó... Tenta de novo! 🦁';
+    }
+
+    async callOpenAI(prompt, apiKey, model, temperature) {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: model || 'gpt-3.5-turbo',
+                messages: [{ role: 'user', content: prompt }],
+                temperature,
+                max_tokens: 1000,
+            })
+        });
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message);
+        return data.choices?.[0]?.message?.content?.trim() || 'Hmm... 🦁';
+    }
+
+    async callDeepSeek(prompt, apiKey, model, temperature) {
+        const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: model || 'deepseek-chat',
+                messages: [{ role: 'user', content: prompt }],
+                temperature,
+                max_tokens: 1000,
+            })
+        });
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message);
+        return data.choices?.[0]?.message?.content?.trim() || 'Hmm... 🦁';
+    }
+
+    // ========== CRÉDITOS ==========
+    updateCreditDisplay() {
+        const dot = document.querySelector('.credit-dot');
+        const text = document.getElementById('credit-text');
+        
+        if (!dot || !text) return;
+
+        if (!this.config.apiKey) {
+            dot.className = 'credit-dot';
+            text.textContent = 'API não configurada';
+        } else if (this.config.credits <= 0) {
+            dot.className = 'credit-dot ok';
+            text.textContent = 'Grátis / Ilimitado';
+        } else if (this.config.credits < this.config.creditAlert) {
+            dot.className = 'credit-dot low';
+            text.textContent = `Crédito baixo: $${this.config.credits.toFixed(2)}`;
+        } else {
+            dot.className = 'credit-dot ok';
+            text.textContent = `Saldo: $${this.config.credits.toFixed(2)}`;
+        }
+    }
+
+    // ========== CONFIGURAÇÕES ==========
+    saveAllConfig() {
+        this.config.provider = document.getElementById('config-provider').value;
+        this.config.apiKey = document.getElementById('config-apikey').value.trim();
+        this.config.model = document.getElementById('config-model').value.trim();
+        this.config.temperature = parseFloat(document.getElementById('config-temperature').value);
+        this.config.lionLevel = parseInt(document.getElementById('config-lion').value);
+        this.config.credits = parseFloat(document.getElementById('config-credits').value) || 0;
+        this.config.creditAlert = parseFloat(document.getElementById('config-credit-alert').value) || 1.00;
+        
+        this.saveConfig();
+        this.showApiStatus('✅ Configurações salvas!', 'success');
+        this.closeSettings();
+    }
+
+    async testApi() {
+        const statusDiv = document.getElementById('api-status');
+        statusDiv.textContent = '⏳ Testando conexão...';
+        statusDiv.className = 'api-status show loading';
+
+        this.config.apiKey = document.getElementById('config-apikey').value.trim();
+        this.config.model = document.getElementById('config-model').value.trim();
+        this.config.provider = document.getElementById('config-provider').value;
+
+        try {
+            const response = await this.callAPI('Responda apenas: SIM');
+            statusDiv.textContent = `✅ Conectado! Resposta: ${response.substring(0, 50)}`;
+            statusDiv.className = 'api-status show success';
+        } catch (error) {
+            statusDiv.textContent = `❌ ${error.message}`;
+            statusDiv.className = 'api-status show error';
+        }
+    }
+
+    showApiStatus(msg, type) {
+        const statusDiv = document.getElementById('api-status');
+        statusDiv.textContent = msg;
+        statusDiv.className = `api-status show ${type}`;
+        setTimeout(() => statusDiv.className = 'api-status', 3000);
+    }
+
+    openSettings() {
+        document.getElementById('settings-modal').classList.add('open');
+    }
+
+    closeSettings() {
+        document.getElementById('settings-modal').classList.remove('open');
+    }
+
+    toggleApiKey() {
+        const input = document.getElementById('config-apikey');
+        input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    clearAll() {
+        if (confirm('Tem certeza? Isso vai apagar TODOS os chats e memórias!')) {
+            this.chats = [];
+            this.memory = {};
+            this.currentChatId = null;
+            
+            localStorage.removeItem('lionel_chats');
+            localStorage.removeItem('lionel_memory');
+            
+            const container = document.getElementById('chat-container');
+            const welcome = document.getElementById('welcome-screen');
+            container.innerHTML = '';
+            if (welcome) welcome.style.display = 'block';
+            
+            this.saveChats();
+            this.closeSettings();
+            this.createNewChat();
+        }
+    }
+}
+
+// Iniciar
+document.addEventListener('DOMContentLoaded', () => {
+    window.lionel = new LionelApp();
+});
