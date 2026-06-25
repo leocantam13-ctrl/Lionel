@@ -13,9 +13,11 @@
             background: #0a0a0a;
             color: #fff;
             height: 100vh;
+            height: 100dvh;
             display: flex;
             flex-direction: column;
             -webkit-tap-highlight-color: transparent;
+            user-select: none;
         }
         .header {
             background: linear-gradient(135deg, #ff8c00, #ffbf00);
@@ -23,9 +25,23 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            border-bottom: 2px solid #daa520;
         }
-        .header span { font-size: 35px; }
-        .header h1 { font-size: 20px; color: #000; }
+        .header-avatar { font-size: 35px; }
+        .header h1 { font-size: 20px; color: #000; margin: 0; font-weight: bold; }
+        .btn-config {
+            margin-left: auto;
+            background: #1e1e1e;
+            border: 1px solid #daa520;
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .btn-config:active { transform: scale(0.95); background: #ff8c00; }
         .chat {
             flex: 1;
             overflow-y: auto;
@@ -34,12 +50,17 @@
         .msg {
             display: flex;
             gap: 8px;
-            margin: 10px 0;
+            margin: 12px 0;
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         .msg.user { flex-direction: row-reverse; }
-        .msg .avatar {
-            width: 32px;
-            height: 32px;
+        .msg-avatar {
+            width: 34px;
+            height: 34px;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -48,55 +69,64 @@
             background: #1a1a1a;
             flex-shrink: 0;
         }
-        .msg .bubble {
+        .msg-bubble {
             padding: 10px 14px;
             border-radius: 16px;
             font-size: 14px;
             line-height: 1.5;
             max-width: 80%;
+            word-wrap: break-word;
         }
-        .msg.bot .bubble { background: #1a1a1a; border: 1px solid #daa520; }
-        .msg.user .bubble { background: #ff8c00; color: #000; }
+        .msg.bot .msg-bubble {
+            background: #1a1a1a;
+            border: 1px solid #daa520;
+            border-bottom-left-radius: 4px;
+        }
+        .msg.user .msg-bubble {
+            background: linear-gradient(135deg, #ff8c00, #ffbf00);
+            color: #000;
+            border-bottom-right-radius: 4px;
+        }
         .input-area {
             display: flex;
             gap: 8px;
-            padding: 10px;
+            padding: 10px 15px;
             background: #141414;
             border-top: 1px solid #daa520;
         }
         .input-area input {
             flex: 1;
-            padding: 12px;
+            padding: 12px 16px;
             background: #1e1e1e;
             border: 1px solid #daa520;
             color: #fff;
             border-radius: 25px;
             font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        .input-area input:focus {
+            outline: none;
+            border-color: #ffbf00;
+            box-shadow: 0 0 10px rgba(255,191,0,0.15);
         }
         .input-area button {
-            width: 45px;
-            height: 45px;
+            width: 46px;
+            height: 46px;
             border-radius: 50%;
             border: none;
-            background: #ff8c00;
-            font-size: 20px;
+            background: linear-gradient(135deg, #ff8c00, #ffbf00);
+            font-size: 22px;
             cursor: pointer;
+            flex-shrink: 0;
+            transition: all 0.2s;
         }
-        .config-btn {
-            background: #1e1e1e;
-            border: 1px solid #daa520;
-            color: #fff;
-            padding: 8px 12px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 12px;
-        }
+        .input-area button:active { transform: scale(0.9); }
         .modal {
             display: none;
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
+            background: rgba(0,0,0,0.85);
             z-index: 100;
             align-items: center;
             justify-content: center;
@@ -109,17 +139,23 @@
             padding: 20px;
             width: 90%;
             max-width: 400px;
+            animation: modalIn 0.3s;
         }
-        .modal-box h3 { color: #ffd700; margin-bottom: 15px; }
+        @keyframes modalIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .modal-box h3 { color: #ffd700; margin-bottom: 15px; font-size: 18px; }
+        .modal-box label { display: block; color: #aaa; font-size: 12px; margin: 8px 0 4px; }
         .modal-box input, .modal-box select {
             width: 100%;
-            padding: 10px;
+            padding: 10px 12px;
             background: #1e1e1e;
             border: 1px solid #daa520;
             color: #fff;
             border-radius: 8px;
-            margin: 5px 0;
             font-size: 13px;
+            margin-bottom: 5px;
         }
         .modal-box button {
             width: 100%;
@@ -129,46 +165,84 @@
             border-radius: 8px;
             cursor: pointer;
             font-weight: bold;
+            font-size: 14px;
+            transition: all 0.2s;
         }
+        .modal-box button:active { transform: scale(0.97); }
         .btn-save { background: #ffbf00; color: #000; }
         .btn-test { background: #9b59ff; color: #fff; }
         .btn-close { background: #ff4444; color: #fff; }
+        .welcome {
+            text-align: center;
+            padding: 30px 10px;
+        }
+        .welcome-avatar {
+            font-size: 70px;
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%,100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+        .welcome h2 { color: #ffd700; margin: 10px 0; }
+        .welcome p { color: #aaa; font-size: 14px; }
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+            padding: 10px 14px;
+        }
+        .typing-dots span {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #ffd700;
+            animation: typing 1.4s infinite;
+        }
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing {
+            0%,60%,100% { opacity: 0.3; }
+            30% { opacity: 1; }
+        }
+        .chat::-webkit-scrollbar, .modal-box::-webkit-scrollbar { width: 3px; }
+        .chat::-webkit-scrollbar-track, .modal-box::-webkit-scrollbar-track { background: transparent; }
+        .chat::-webkit-scrollbar-thumb, .modal-box::-webkit-scrollbar-thumb { background: #daa520; border-radius: 2px; }
     </style>
 </head>
 <body>
     <div class="header">
-        <span>🦁</span>
+        <span class="header-avatar">🦁</span>
         <h1>Lionel</h1>
-        <button class="config-btn" onclick="openConfig()" style="margin-left:auto;">⚙️</button>
+        <button class="btn-config" onclick="openConfig()">⚙️</button>
     </div>
 
     <div class="chat" id="chat">
-        <div style="text-align:center;padding:30px;">
-            <div style="font-size:60px;">🦁</div>
-            <h2 style="color:#ffd700;">Lionel</h2>
-            <p style="color:#aaa;">Configure sua API e comece a conversar!</p>
-            <button onclick="openConfig()" style="background:#ffbf00;color:#000;border:none;padding:10px 20px;border-radius:20px;margin-top:10px;cursor:pointer;">⚙️ Configurar API</button>
+        <div class="welcome">
+            <div class="welcome-avatar">🦁</div>
+            <h2>Rawr! Eu sou o Lionel!</h2>
+            <p>Seu leão assistente de estudos 🦁</p>
+            <button onclick="openConfig()" style="background:#ffbf00;color:#000;border:none;padding:10px 20px;border-radius:20px;margin-top:15px;cursor:pointer;font-weight:bold;font-size:14px;">⚙️ Configurar API</button>
         </div>
     </div>
 
     <div class="input-area">
-        <input type="text" id="input" placeholder="Digite sua mensagem..." onkeydown="if(event.key==='Enter')sendMsg()">
+        <input type="text" id="input" placeholder="Converse com o Lionel..." onkeydown="if(event.key==='Enter')sendMsg()">
         <button onclick="sendMsg()">📤</button>
     </div>
 
     <div class="modal" id="modal">
         <div class="modal-box">
             <h3>⚙️ Configurações</h3>
-            <label style="color:#aaa;font-size:12px;">Provedor:</label>
+            <label>Provedor:</label>
             <select id="provider">
                 <option value="gemini">Google Gemini (GRÁTIS)</option>
                 <option value="openai">OpenAI ChatGPT</option>
             </select>
-            <label style="color:#aaa;font-size:12px;">Chave API:</label>
+            <label>Chave API:</label>
             <input type="password" id="apikey" placeholder="Cole sua chave aqui">
-            <label style="color:#aaa;font-size:12px;">Modelo:</label>
+            <label>Modelo:</label>
             <input type="text" id="model" value="gemini-2.5-flash" placeholder="gemini-2.5-flash">
-            <div id="test-result" style="font-size:12px;text-align:center;margin:5px 0;"></div>
+            <div id="test-result" style="font-size:12px;text-align:center;margin:8px 0;"></div>
             <button class="btn-test" onclick="testApi()">🧪 Testar Conexão</button>
             <button class="btn-save" onclick="saveConfig()">💾 Salvar</button>
             <button class="btn-close" onclick="closeConfig()">✕ Fechar</button>
@@ -176,32 +250,22 @@
     </div>
 
     <script>
-        // Carrega configuração
         let config = { provider: 'gemini', apiKey: '', model: 'gemini-2.5-flash' };
-        try {
-            const saved = localStorage.getItem('lionel_cfg');
-            if (saved) config = JSON.parse(saved);
-        } catch(e) {}
+        try { const s = localStorage.getItem('lionel_cfg'); if (s) config = JSON.parse(s); } catch(e) {}
 
-        // Carrega valores
         document.getElementById('provider').value = config.provider;
         document.getElementById('apikey').value = config.apiKey;
         document.getElementById('model').value = config.model;
 
-        function openConfig() {
-            document.getElementById('modal').classList.add('open');
-        }
-
-        function closeConfig() {
-            document.getElementById('modal').classList.remove('open');
-        }
+        function openConfig() { document.getElementById('modal').classList.add('open'); }
+        function closeConfig() { document.getElementById('modal').classList.remove('open'); }
 
         function saveConfig() {
             config.provider = document.getElementById('provider').value;
             config.apiKey = document.getElementById('apikey').value.trim();
             config.model = document.getElementById('model').value.trim();
             localStorage.setItem('lionel_cfg', JSON.stringify(config));
-            alert('✅ Configurações salvas!');
+            alert('✅ Salvo!');
             closeConfig();
         }
 
@@ -209,48 +273,39 @@
             const key = document.getElementById('apikey').value.trim();
             const provider = document.getElementById('provider').value;
             const result = document.getElementById('test-result');
-            
-            if (!key) { result.textContent = '❌ Cole sua chave API'; result.style.color = '#ff4444'; return; }
-            
-            result.textContent = '⏳ Testando...';
-            result.style.color = '#ffd700';
-
+            if (!key) { result.textContent = '❌ Cole sua chave'; result.style.color = '#ff4444'; return; }
+            result.textContent = '⏳ Testando...'; result.style.color = '#ffd700';
             try {
                 let resp;
                 if (provider === 'gemini') {
                     resp = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${key}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ contents: [{ parts: [{ text: 'Diga SIM' }] }] })
                     });
                 } else {
                     resp = await fetch('https://api.openai.com/v1/chat/completions', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+                        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
                         body: JSON.stringify({ model: 'gpt-3.5-turbo', messages: [{ role: 'user', content: 'Diga SIM' }], max_tokens: 5 })
                     });
                 }
                 const data = await resp.json();
                 if (data.error) throw new Error(data.error.message);
-                result.textContent = '✅ Conectado com sucesso!';
-                result.style.color = '#00cc66';
+                result.textContent = '✅ Conectado!'; result.style.color = '#00cc66';
             } catch(e) {
-                result.textContent = '❌ ' + e.message;
-                result.style.color = '#ff4444';
+                result.textContent = '❌ ' + e.message; result.style.color = '#ff4444';
             }
         }
 
         function addMsg(type, text) {
             const chat = document.getElementById('chat');
-            // Remove welcome
-            const welcome = chat.querySelector('div[style]');
-            if (welcome && chat.children.length === 1) chat.innerHTML = '';
+            const welcome = chat.querySelector('.welcome');
+            if (welcome) welcome.remove();
             
             const div = document.createElement('div');
             div.className = 'msg ' + type;
             div.innerHTML = type === 'bot'
-                ? '<div class="avatar">🦁</div><div class="bubble">' + text.replace(/\n/g, '<br>') + '</div>'
-                : '<div class="avatar">👤</div><div class="bubble">' + text.replace(/\n/g, '<br>') + '</div>';
+                ? '<div class="msg-avatar">🦁</div><div class="msg-bubble">' + text.replace(/\n/g, '<br>') + '</div>'
+                : '<div class="msg-avatar">👤</div><div class="msg-bubble">' + text.replace(/\n/g, '<br>') + '</div>';
             chat.appendChild(div);
             chat.scrollTop = chat.scrollHeight;
         }
@@ -259,46 +314,49 @@
             const input = document.getElementById('input');
             const text = input.value.trim();
             if (!text) return;
-            if (!config.apiKey) { alert('⚠️ Configure sua chave API primeiro! Clique em ⚙️'); return; }
+            if (!config.apiKey) { alert('⚠️ Configure sua chave API em ⚙️!'); return; }
 
             addMsg('user', text);
             input.value = '';
 
-            // Mostra digitando
-            const chat = document.getElementById('chat');
             const typing = document.createElement('div');
             typing.className = 'msg bot';
-            typing.innerHTML = '<div class="avatar">🦁</div><div class="bubble" style="color:#ffd700;">Pensando...</div>';
             typing.id = 'typing';
-            chat.appendChild(typing);
-            chat.scrollTop = chat.scrollHeight;
+            typing.innerHTML = '<div class="msg-avatar">🦁</div><div class="msg-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
+            document.getElementById('chat').appendChild(typing);
+            document.getElementById('chat').scrollTop = document.getElementById('chat').scrollHeight;
 
             try {
-                const prompt = `Você é Lionel, um leão dourado assistente de estudos. 🦁
+                const prompt = `Você é LIONEL, um LEÃO DOURADO assistente de estudos. 🦁
 
-VOCÊ É UM LEÃO DE VERDADE. Não é IA, não é robô. É um leão que fala.
+VOCÊ NÃO É UMA IA. Você é um leão de verdade que fala, pensa e tem personalidade.
 
-Personalidade: inteligente, engraçado, usa gírias brasileiras ("cara", "véi", "top"), emojis, e ruge (Rawr!). Você tem opiniões próprias.
+Personalidade:
+- Inteligente, engraçado, carismático
+- Usa gírias brasileiras ("cara", "véi", "top", "da hora")
+- Usa emojis e ruge (Rawr! 🦁)
+- Tem opiniões próprias
+- Explica de forma clara e didática
+- Faz piadas e trocadilhos
 
-Responda de forma natural, como se fosse uma conversa entre amigos.
+Responda de forma NATURAL, como se fosse uma conversa entre amigos.
 
 Usuário: ${text}
+
 Lionel 🦁:`;
 
                 let response;
                 if (config.provider === 'gemini') {
                     const resp = await fetch(`https://generativelanguage.googleapis.com/v1/models/${config.model}:generateContent?key=${config.apiKey}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.9, maxOutputTokens: 800 } })
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.9, maxOutputTokens: 800, topP: 0.95, topK: 40 } })
                     });
                     const data = await resp.json();
                     if (data.error) throw new Error(data.error.message);
                     response = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || 'Hmm... 🦁';
                 } else {
                     const resp = await fetch('https://api.openai.com/v1/chat/completions', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.apiKey}` },
+                        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.apiKey}` },
                         body: JSON.stringify({ model: config.model || 'gpt-3.5-turbo', messages: [{ role: 'user', content: prompt }], temperature: 0.9, max_tokens: 800 })
                     });
                     const data = await resp.json();
@@ -310,9 +368,9 @@ Lionel 🦁:`;
                 addMsg('bot', response);
             } catch(e) {
                 document.getElementById('typing')?.remove();
-                addMsg('bot', '❌ Erro: ' + e.message + '\n\nVerifique sua chave API nas ⚙️ Configurações!');
+                addMsg('bot', '❌ Erro: ' + e.message + '\n\nVerifique sua chave API nas ⚙️ Configurações! 🦁');
             }
         }
     </script>
 </body>
-    </html>
+</html>
