@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0a0a0a">
+    <title>🦁 Lionel 3.0</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="data:application/json,{'name':'Lionel','short_name':'Lionel','start_url':'.','display':'standalone','background_color':'%230a0a0a','theme_color':'%23ff8c00'}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦁</text></svg>">
+</head>
+<body>
+    <div class="app">
+        <!-- Sidebar de Chats -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <span>🦁</span>
+                <h3>Chats</h3>
+                <button class="sidebar-close" id="btn-sidebar-close">✕</button>
+            </div>
+            <button class="new-chat-btn" id="btn-new-chat">+ Novo Chat</button>
+            <div class="chat-list" id="chat-list"></div>
+            <div class="sidebar-footer">
+                <div class="credit-info" id="credit-info">
+                    <span class="credit-dot"></span>
+                    <span id="credit-text">API não configurada</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main -->
+        <div class="main">
+            <header class="header">
+                <button class="header-btn" id="btn-menu">☰</button>
+                <div class="header-info">
+                    <span class="header-avatar">🦁</span>
+                    <div>
+                        <h1 class="header-name">Lionel</h1>
+                        <p class="header-status" id="status-text">Online 🟢</p>
+                    </div>
+                </div>
+                <button class="header-btn" id="btn-settings">⚙️</button>
+            </header>
+
+            <!-- Área de Chat -->
+            <main class="chat" id="chat-container">
+                <div class="chat-welcome" id="welcome-screen">
+                    <div class="welcome-avatar">🦁</div>
+                    <h2>Olá! Eu sou o Lionel!</h2>
+                    <p>Seu leão assistente com memória, acesso à internet e personalidade de verdade!</p>
+                    <div class="welcome-features">
+                        <div class="feature"><span>🧠</span> Memória</div>
+                        <div class="feature"><span>🌐</span> Internet</div>
+                        <div class="feature"><span>💬</span> Múltiplos chats</div>
+                        <div class="feature"><span>🦁</span> Personalidade</div>
+                    </div>
+                    <div class="welcome-tips">
+                        <button class="tip-btn" data-msg="Quem é você Lionel?">🦁 Quem é você?</button>
+                        <button class="tip-btn" data-msg="Pesquise na internet: O que é inteligência artificial?">🌐 Pesquisar na internet</button>
+                        <button class="tip-btn" data-msg="Me explique como se eu fosse um filhote de leão: o que é fração?">📚 Me explique algo</button>
+                        <button class="tip-btn" data-msg="Lembre-se: minha matéria favorita é matemática">🧠 Lembrar de algo</button>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Input -->
+            <div class="chat-input-area">
+                <button class="internet-btn" id="btn-internet" title="Ativar busca na internet">🌐</button>
+                <textarea class="chat-input" id="chat-input" placeholder="Pergunte algo para o Lionel..." rows="1" maxlength="2000"></textarea>
+                <button class="send-btn" id="btn-send">📤</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Configurações -->
+    <div class="modal" id="settings-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⚙️ Configurações</h3>
+                <button class="modal-close" id="btn-close-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <label class="config-label">🤖 Provedor de IA:</label>
+                <select id="config-provider" class="config-input">
+                    <option value="gemini">Google Gemini (GRÁTIS)</option>
+                    <option value="openai">OpenAI ChatGPT</option>
+                    <option value="deepseek">DeepSeek</option>
+                </select>
+
+                <label class="config-label">🔐 Chave da API:</label>
+                <div class="input-row">
+                    <input type="password" id="config-apikey" class="config-input" placeholder="Cole sua chave API">
+                    <button class="toggle-key" id="btn-toggle-key">👁️</button>
+                </div>
+
+                <label class="config-label">🧠 Modelo:</label>
+                <input type="text" id="config-model" class="config-input" placeholder="gemini-2.5-flash">
+
+                <div id="api-status" class="api-status"></div>
+
+                <button class="config-btn config-btn-primary" id="btn-test-api">🧪 Testar Conexão</button>
+                <button class="config-btn config-btn-success" id="btn-save-config">💾 Salvar</button>
+
+                <hr class="config-divider">
+
+                <h4>🎨 Personalidade</h4>
+                <label class="config-label">Temperatura:</label>
+                <input type="range" id="config-temperature" class="config-range" min="0" max="2" step="0.1" value="0.9">
+                <span id="temp-value" class="range-label">0.9</span>
+
+                <label class="config-label">Nível de Leãonidade 🦁:</label>
+                <input type="range" id="config-lion" class="config-range" min="0" max="100" step="10" value="80">
+                <span id="lion-value" class="range-label">80%</span>
+
+                <hr class="config-divider">
+
+                <h4>💰 Aviso de Créditos</h4>
+                <label class="config-label">Saldo atual (USD):</label>
+                <input type="number" id="config-credits" class="config-input" placeholder="0" step="0.01" min="0" value="0">
+                <label class="config-label">Alertar quando abaixo de:</label>
+                <input type="number" id="config-credit-alert" class="config-input" placeholder="1.00" step="0.01" min="0" value="1.00">
+
+                <button class="config-btn config-btn-danger" id="btn-clear-all">🗑️ Limpar Tudo</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+              </html>
