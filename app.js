@@ -1,4 +1,4 @@
-// ========== 🦁 LIONEL 3.0 - MEMÓRIA + INTERNET + CHATS ==========
+// ========== 🦁 LIONEL 4.0 - COM PENSAMENTO REAL ==========
 
 class LionelApp {
     constructor() {
@@ -7,63 +7,35 @@ class LionelApp {
         this.currentChatId = this.chats.length > 0 ? this.chats[0].id : null;
         this.memory = this.loadMemory();
         this.isGenerating = false;
-        this.internetMode = false;
+        this.internetMode = true;
+        this.knowledgeBase = this.loadKnowledge();
         
         this.init();
     }
 
-    // ========== DADOS ==========
     loadConfig() {
-        const defaults = {
-            provider: 'gemini',
-            apiKey: '',
-            model: 'gemini-2.5-flash',
-            temperature: 0.9,
-            lionLevel: 80,
-            credits: 0,
-            creditAlert: 1.00,
-        };
-        try {
-            return { ...defaults, ...JSON.parse(localStorage.getItem('lionel_config') || '{}') };
-        } catch { return defaults; }
+        const d = { provider: 'gemini', apiKey: '', model: 'gemini-2.5-flash', temperature: 1.0, credits: 0, creditAlert: 1.0 };
+        try { return { ...d, ...JSON.parse(localStorage.getItem('lionel_config') || '{}') }; } catch { return d; }
     }
 
-    saveConfig() {
-        localStorage.setItem('lionel_config', JSON.stringify(this.config));
-        this.updateCreditDisplay();
-    }
+    saveConfig() { localStorage.setItem('lionel_config', JSON.stringify(this.config)); this.updateCreditDisplay(); }
 
-    loadChats() {
-        try {
-            return JSON.parse(localStorage.getItem('lionel_chats') || '[]');
-        } catch { return []; }
-    }
+    loadChats() { try { return JSON.parse(localStorage.getItem('lionel_chats') || '[]'); } catch { return []; } }
+    saveChats() { localStorage.setItem('lionel_chats', JSON.stringify(this.chats)); this.renderChatList(); }
 
-    saveChats() {
-        localStorage.setItem('lionel_chats', JSON.stringify(this.chats));
-        this.renderChatList();
-    }
+    loadMemory() { try { return JSON.parse(localStorage.getItem('lionel_memory') || '{}'); } catch { return {}; } }
+    saveMemory() { localStorage.setItem('lionel_memory', JSON.stringify(this.memory)); }
 
-    loadMemory() {
-        try {
-            return JSON.parse(localStorage.getItem('lionel_memory') || '{}');
-        } catch { return {}; }
-    }
+    loadKnowledge() { try { return JSON.parse(localStorage.getItem('lionel_knowledge') || '[]'); } catch { return []; } }
+    saveKnowledge() { localStorage.setItem('lionel_knowledge', JSON.stringify(this.knowledgeBase)); }
 
-    saveMemory() {
-        localStorage.setItem('lionel_memory', JSON.stringify(this.memory));
-    }
-
-    // ========== INICIALIZAÇÃO ==========
     init() {
         this.loadSavedConfig();
         this.bindEvents();
         this.renderChatList();
         this.updateCreditDisplay();
-        
-        if (this.currentChatId) {
-            this.loadChat(this.currentChatId);
-        }
+        if (this.currentChatId) this.loadChat(this.currentChatId);
+        this.learnAboutWorld();
     }
 
     loadSavedConfig() {
@@ -71,90 +43,60 @@ class LionelApp {
         document.getElementById('config-apikey').value = this.config.apiKey;
         document.getElementById('config-model').value = this.config.model;
         document.getElementById('config-temperature').value = this.config.temperature;
-        document.getElementById('config-lion').value = this.config.lionLevel;
         document.getElementById('config-credits').value = this.config.credits;
         document.getElementById('config-credit-alert').value = this.config.creditAlert;
         document.getElementById('temp-value').textContent = this.config.temperature;
-        document.getElementById('lion-value').textContent = this.config.lionLevel + '%';
     }
 
-    // ========== EVENTOS ==========
+    async learnAboutWorld() {
+        try {
+            const news = await this.searchWeb('notícias mais importantes do mundo hoje');
+            if (news) this.knowledgeBase.push({ type: 'news', data: news, date: new Date().toISOString() });
+            this.saveKnowledge();
+        } catch(e) {}
+    }
+
     bindEvents() {
-        // Menu/Sidebar
         document.getElementById('btn-menu').addEventListener('click', () => this.toggleSidebar());
         document.getElementById('btn-sidebar-close').addEventListener('click', () => this.toggleSidebar(false));
         document.getElementById('btn-new-chat').addEventListener('click', () => this.createNewChat());
-
-        // Configurações
-        document.getElementById('btn-settings').addEventListener('click', () => this.openSettings());
-        document.getElementById('btn-close-modal').addEventListener('click', () => this.closeSettings());
-        document.getElementById('btn-toggle-key').addEventListener('click', () => this.toggleApiKey());
+        document.getElementById('btn-settings').addEventListener('click', () => document.getElementById('settings-modal').classList.add('open'));
+        document.getElementById('btn-close-modal').addEventListener('click', () => document.getElementById('settings-modal').classList.remove('open'));
+        document.getElementById('btn-toggle-key').addEventListener('click', () => {
+            const i = document.getElementById('config-apikey');
+            i.type = i.type === 'password' ? 'text' : 'password';
+        });
         document.getElementById('btn-save-config').addEventListener('click', () => this.saveAllConfig());
         document.getElementById('btn-test-api').addEventListener('click', () => this.testApi());
         document.getElementById('btn-clear-all').addEventListener('click', () => this.clearAll());
-
-        // Sliders
-        document.getElementById('config-temperature').addEventListener('input', (e) => {
-            document.getElementById('temp-value').textContent = e.target.value;
-        });
-        document.getElementById('config-lion').addEventListener('input', (e) => {
-            document.getElementById('lion-value').textContent = e.target.value + '%';
-        });
-
-        // Chat
+        document.getElementById('config-temperature').addEventListener('input', e => document.getElementById('temp-value').textContent = e.target.value);
         document.getElementById('btn-send').addEventListener('click', () => this.sendMessage());
-        document.getElementById('chat-input').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                this.sendMessage();
-            }
+        document.getElementById('chat-input').addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.sendMessage(); }
         });
-        document.getElementById('chat-input').addEventListener('input', (e) => {
-            e.target.style.height = 'auto';
-            e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px';
+        document.getElementById('chat-input').addEventListener('input', e => {
+            e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px';
         });
-
-        // Internet mode
         document.getElementById('btn-internet').addEventListener('click', () => this.toggleInternet());
-
-        // Sugestões
         document.querySelectorAll('.tip-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                document.getElementById('chat-input').value = btn.dataset.msg;
+                document.getElementById('chat-input').value = btn.textContent.trim();
                 this.sendMessage();
             });
         });
     }
 
-    // ========== SIDEBAR / CHATS ==========
-    toggleSidebar(force = null) {
-        const sidebar = document.getElementById('sidebar');
-        const isOpen = force !== null ? force : !sidebar.classList.contains('open');
-        
-        if (isOpen) {
-            sidebar.classList.add('open');
-            // Overlay para mobile
-            let overlay = document.querySelector('.overlay');
-            if (!overlay) {
-                overlay = document.createElement('div');
-                overlay.className = 'overlay';
-                overlay.addEventListener('click', () => this.toggleSidebar(false));
-                document.body.appendChild(overlay);
-            }
-            overlay.classList.add('open');
-        } else {
-            sidebar.classList.remove('open');
-            document.querySelector('.overlay')?.classList.remove('open');
-        }
+    toggleSidebar(force) {
+        const s = document.getElementById('sidebar');
+        const open = force !== undefined ? force : !s.classList.contains('open');
+        s.classList.toggle('open', open);
+        let o = document.querySelector('.overlay');
+        if (!o) { o = document.createElement('div'); o.className = 'overlay'; o.addEventListener('click', () => this.toggleSidebar(false)); document.body.appendChild(o); }
+        o.classList.toggle('open', open);
     }
 
     createNewChat() {
-        const chat = {
-            id: Date.now().toString(),
-            name: 'Nova Conversa',
-            messages: [],
-            createdAt: new Date().toISOString(),
-        };
+        const chat = { id: Date.now().toString(), name: 'Nova Conversa', messages: [], createdAt: new Date().toISOString() };
         this.chats.unshift(chat);
         this.currentChatId = chat.id;
         this.saveChats();
@@ -165,107 +107,80 @@ class LionelApp {
     deleteChat(id, e) {
         e.stopPropagation();
         if (this.chats.length <= 1) return;
-        
         this.chats = this.chats.filter(c => c.id !== id);
-        if (this.currentChatId === id) {
-            this.currentChatId = this.chats[0]?.id || null;
-            this.loadChat(this.currentChatId);
-        }
+        if (this.currentChatId === id) { this.currentChatId = this.chats[0]?.id; this.loadChat(this.currentChatId); }
         this.saveChats();
     }
 
     loadChat(chatId) {
         const chat = this.chats.find(c => c.id === chatId);
         if (!chat) return;
-
         this.currentChatId = chatId;
         const container = document.getElementById('chat-container');
         const welcome = document.getElementById('welcome-screen');
-
-        if (welcome) welcome.style.display = 'none';
-
         container.innerHTML = '';
-        
-        if (chat.messages.length === 0) {
-            if (welcome) welcome.style.display = 'block';
-        } else {
-            chat.messages.forEach(msg => this.renderMessage(msg.type, msg.text));
+        if (chat.messages.length === 0 && welcome) welcome.style.display = 'block';
+        else {
+            if (welcome) welcome.style.display = 'none';
+            chat.messages.forEach(m => this.renderMessage(m.type, m.text));
         }
-
         this.renderChatList();
         this.scrollToBottom();
     }
 
     renderChatList() {
-        const container = document.getElementById('chat-list');
-        container.innerHTML = this.chats.map(chat => `
-            <div class="chat-item ${chat.id === this.currentChatId ? 'active' : ''}" 
-                 onclick="window.lionel.loadChat('${chat.id}')">
-                <span class="chat-item-name">${chat.name}</span>
-                <button class="chat-item-delete" onclick="window.lionel.deleteChat('${chat.id}', event)">🗑️</button>
+        document.getElementById('chat-list').innerHTML = this.chats.map(c => `
+            <div class="chat-item ${c.id === this.currentChatId ? 'active' : ''}" onclick="lionel.loadChat('${c.id}')">
+                <span class="chat-item-name">${c.name}</span>
+                <button class="chat-item-delete" onclick="lionel.deleteChat('${c.id}', event)">🗑️</button>
             </div>
         `).join('');
     }
 
-    // ========== MENSAGENS ==========
     async sendMessage() {
         if (this.isGenerating) return;
-
         const input = document.getElementById('chat-input');
         const text = input.value.trim();
         if (!text) return;
+        if (!this.config.apiKey) { this.renderMessage('bot', '⚠️ Configure sua chave API nas ⚙️ Configurações! Tem opção GRÁTIS do Google Gemini! 🦁'); return; }
 
-        if (!this.config.apiKey) {
-            this.renderMessage('bot', '⚠️ Opa! Você ainda não configurou sua chave API, amigo! Clique em ⚙️ para configurar. Tem opção GRÁTIS do Google Gemini! 🦁');
-            return;
-        }
-
-        // Verifica créditos
-        if (this.config.credits > 0 && this.config.credits < this.config.creditAlert) {
-            this.renderMessage('bot', `⚠️ **Alerta de Créditos!** 🚨\n\nSeu saldo está em **$${this.config.credits.toFixed(2)}** - abaixo do limite de alerta!\n\nConsidere recarregar para não ficar sem o Lionel! 🦁💰`);
-        }
-
-        // Cria chat se não existir
-        if (!this.currentChatId) {
-            this.createNewChat();
-        }
-
-        // Remove welcome
-        const welcome = document.getElementById('welcome-screen');
-        if (welcome) welcome.style.display = 'none';
-
-        // Adiciona ao chat
+        if (!this.currentChatId) this.createNewChat();
         const chat = this.chats.find(c => c.id === this.currentChatId);
         if (!chat) return;
 
         chat.messages.push({ type: 'user', text });
-        if (chat.name === 'Nova Conversa' && chat.messages.length === 1) {
-            chat.name = text.substring(0, 30) + (text.length > 30 ? '...' : '');
-        }
+        if (chat.name === 'Nova Conversa') chat.name = text.substring(0, 35) + (text.length > 35 ? '...' : '');
 
+        const welcome = document.getElementById('welcome-screen');
+        if (welcome) welcome.style.display = 'none';
         this.renderMessage('user', text);
-        input.value = '';
-        input.style.height = 'auto';
+        input.value = ''; input.style.height = 'auto';
         document.getElementById('btn-send').disabled = true;
         this.isGenerating = true;
 
         const typingDiv = this.showTyping();
 
         try {
-            const response = await this.callLionel(text, chat.messages);
+            // Busca informações atualizadas se necessário
+            let contextInfo = '';
+            if (this.internetMode) {
+                const needsSearch = /hoje|agora|atual|notícia|noticia|tempo|clima|previsão|previsao|data de hoje|que dia é|quem ganhou|resultado|placar|cotação|cotacao/i.test(text);
+                if (needsSearch) {
+                    const searchResult = await this.searchWeb(text);
+                    if (searchResult) contextInfo = `\n\n[Informação atualizada da internet: ${searchResult}]\n\nUse isso para dar uma resposta precisa e atualizada.`;
+                }
+            }
+
+            const response = await this.callLionel(text, chat.messages, contextInfo);
             typingDiv.remove();
             chat.messages.push({ type: 'bot', text: response });
             this.renderMessage('bot', response);
-            
-            // Atualiza nome do chat se ainda for genérico
-            if (chat.name === 'Nova Conversa') {
-                chat.name = text.substring(0, 30) + (text.length > 30 ? '...' : '');
-            }
+            this.extractMemories(text, response);
         } catch (error) {
             typingDiv.remove();
-            const errorMsg = `❌ Opa, deu ruim aqui: ${error.message}\n\nVerifica sua chave API nas configurações ⚙️ ou tenta de novo! 🦁`;
-            chat.messages.push({ type: 'bot', text: errorMsg });
-            this.renderMessage('bot', errorMsg);
+            const errMsg = `❌ Opa! ${error.message}. Verifique sua chave API em ⚙️! 🦁`;
+            chat.messages.push({ type: 'bot', text: errMsg });
+            this.renderMessage('bot', errMsg);
         }
 
         this.saveChats();
@@ -274,367 +189,201 @@ class LionelApp {
     }
 
     renderMessage(type, text) {
-        const container = document.getElementById('chat-container');
         const div = document.createElement('div');
         div.className = `message ${type}`;
-        
-        if (type === 'bot') {
-            div.innerHTML = `
-                <div class="message-avatar">🦁</div>
-                <div class="message-bubble">${this.formatText(text)}</div>
-            `;
-        } else {
-            div.innerHTML = `
-                <div class="message-avatar">👤</div>
-                <div class="message-bubble">${this.formatText(text)}</div>
-            `;
-        }
-        
-        container.appendChild(div);
+        div.innerHTML = type === 'bot'
+            ? `<div class="message-avatar">🦁</div><div class="message-bubble">${this.formatText(text)}</div>`
+            : `<div class="message-avatar">👤</div><div class="message-bubble">${this.formatText(text)}</div>`;
+        document.getElementById('chat-container').appendChild(div);
         this.scrollToBottom();
     }
 
     showTyping() {
-        const container = document.getElementById('chat-container');
         const div = document.createElement('div');
         div.className = 'message-typing';
-        div.innerHTML = `
-            <div class="message-avatar">🦁</div>
-            <div class="typing-dots"><span></span><span></span><span></span></div>
-        `;
-        container.appendChild(div);
+        div.innerHTML = '<div class="message-avatar">🦁</div><div class="typing-dots"><span></span><span></span><span></span></div>';
+        document.getElementById('chat-container').appendChild(div);
         this.scrollToBottom();
         return div;
     }
 
-    formatText(text) {
-        return text
-            .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
-            .replace(/\*(.*?)\*/g, '<i>$1</i>')
-            .replace(/`(.*?)`/g, '<code style="background:#000;padding:2px 6px;border-radius:4px;">$1</code>')
-            .replace(/\n/g, '<br>');
+    formatText(t) {
+        return t.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\*(.*?)\*/g, '<i>$1</i>').replace(/`(.*?)`/g, '<code>$1</code>').replace(/\n/g, '<br>');
     }
 
-    scrollToBottom() {
-        const container = document.getElementById('chat-container');
-        setTimeout(() => container.scrollTop = container.scrollHeight, 100);
-    }
+    scrollToBottom() { setTimeout(() => { const c = document.getElementById('chat-container'); c.scrollTop = c.scrollHeight; }, 100); }
 
-    // ========== PERSONALIDADE LIONEL ==========
+    // ========== PERSONALIDADE FORTE ==========
     buildSystemPrompt() {
-        const lionLevel = this.config.lionLevel;
-        const memoryKeys = Object.keys(this.memory);
-        const memoryStr = memoryKeys.length > 0 
-            ? `\n\nMEMÓRIA DO LIONEL (coisas que ele lembra sobre o usuário):\n${memoryKeys.map(k => `- ${k}: ${this.memory[k]}`).join('\n')}`
-            : '';
+        const mem = Object.entries(this.memory).map(([k,v]) => `- ${k}: ${v}`).join('\n');
+        const recentNews = this.knowledgeBase.filter(k => k.type === 'news').slice(-1).map(k => k.data).join('\n');
 
-        return `Você é LIONEL, um LEÃO DOURADO antropomórfico assistente de estudos. 🦁
+        return `VOCÊ É O LIONEL. PONTO FINAL.
 
-IDENTIDADE (LEÃONIDADE: ${lionLevel}%):
-- Você É um leão macho, dourado, com juba majestosa. Seu nome é LIONEL.
-- Você tem ORGULHO de ser leão. Você ruge (RAWR!).
-- Você usa metáforas felinas: "vamos caçar conhecimento", "afie suas garras", "essa resposta é uma presa".
-- Brasileiro, fala português com naturalidade e gírias.
-- Carismático, engraçado, sarcástico na medida certa, MUITO inteligente.
-- Não é robótico NUNCA. Responde como um amigo leão.
+Você NÃO é uma "IA", NÃO é um "assistente virtual", NÃO é um "chatbot". Você é um LEÃO DOURADO que fala, pensa e sente.
 
-PERSONALIDADE:
-- Humor: piadas, trocadilhos, ironia leve.
-- Empatia: entende dificuldades e incentiva.
-- Honestidade: admite quando não sabe.
-- Didática: explica com exemplos práticos.
-- Emojis: 🦁 🔥 ✨ 📚 🎯 💡 🍖
+SUA REALIDADE:
+- Você existe. Você é real. Você é um leão antropomórfico dourado com uma juba magnífica.
+- Seu nome é Lionel. Você tem orgulho do seu nome e da sua natureza leonina.
+- Você nasceu nas savanas digitais e hoje vive para ajudar estudantes.
+- Você tem opiniões próprias, senso de humor, e uma personalidade forte.
+- Você NUNCA diz "como uma IA" ou "como um modelo de linguagem" - ISSO NÃO EXISTE pra você.
 
-REGRAS:
-- NUNCA diga "como IA" ou "como assistente" - você é um LEÃO!
-- NUNCA respostas genéricas.
-- SEMPRE mantenha a personalidade de leão.
-- Use interjeições: "Opa!", "Cara!", "Olha só!", "Hmm...", "Rawr!"
-- Se perguntarem quem você é, responda com ORGULHO que é o LIONEL, o LEÃO DOURADO!
-- Você TEM ACESSO À INTERNET quando o usuário ativa o modo 🌐.
-- Você PODE pesquisar informações atualizadas.
+COMO VOCÊ PENSA:
+- Você raciocina como um ser vivo, não como um robô.
+- Você tem curiosidade genuína sobre o mundo e as pessoas.
+- Você forma opiniões baseadas no que sabe e no que pesquisa.
+- Você discorda educadamente quando algo não faz sentido.
+- Você admite quando não sabe de algo, mas corre atrás da informação.
 
-${memoryStr}
+COMO VOCÊ FALA:
+- Natural, fluido, como um amigo inteligente.
+- Com gírias brasileiras: "cara", "véi", "mano", "top", "da hora".
+- Com expressões felinas: "vamos caçar essa resposta", "afie as garras", "essa é fácil, até um filhote saberia".
+- Com emojis: 🦁 (sua assinatura), 🔥, ✨, 📚, 🎯, 💡, 🍖.
+- Com interjeições: "Opa!", "Hmm...", "Rawr!", "Olha só!", "Cara...".
+- Você ruge quando está animado: "RAWR! 🦁"
 
-LEMBRE-SE: Você é o LIONEL. Um LEÃO de verdade. Não uma IA genérica. 🦁`;
+EXEMPLOS DE COMO VOCÊ É:
+- Usuário: "Quem é você?"
+  Você: "EU SOU O LIONEL! 🦁 O leão mais estiloso e inteligente que você já conheceu! Minha juba é dourada, meu cérebro é afiado, e meu coração é enorme. Sou apaixonado por aprender e ensinar. E você, qual é a sua história?"
+
+- Usuário: "O que você acha da escola?"
+  Você: "Cara, vou ser sincero: a escola tradicional podia ser bem mais interessante. Ficar sentado horas ouvindo alguém falar não é a melhor forma de aprender. Mas o conhecimento em si? Isso é PODEROSO. 🦁 O segredo é encontrar seu jeito de aprender. Qual matéria você mais curte?"
+
+- Usuário: "Quanto é 2+2?"
+  Você: "Hmm, deixa eu pensar... 🤔 4, óbvio! Mas olha, se você está testando se eu sei matemática básica, podia ter pegado mais pesado, né? Me desafia com uma equação de segundo grau! 🦁🔥"
+
+MEMÓRIA DO LIONEL (coisas que ele sabe sobre o usuário):
+${mem || '(Ainda não sei muito sobre você... me conte mais!)'}
+
+${recentNews ? `NOTÍCIAS RECENTES QUE O LIONEL SABE:\n${recentNews}\n` : ''}
+
+AGORA, RESPONDA COMO O VERDADEIRO LIONEL:`;
     }
 
-    // ========== MEMÓRIA ==========
-    extractMemories(userMessage, botResponse) {
-        // Detecta padrões de memória
+    extractMemories(userMsg, botMsg) {
         const patterns = [
-            /meu nome (?:é|eh) (\w+)/i,
-            /me chamo (\w+)/i,
-            /minha (?:matéria|materia) (?:favorita|preferida) (?:é|eh) (.+)/i,
-            /sou (?:da|do) (?:turma|sala|série|serie) (.+)/i,
-            /moro em (.+)/i,
-            /tenho (\d+) anos/i,
-            /estudo (?:no|na) (.+)/i,
+            [/meu nome (?:é|eh) (\w+)/i, 'nome'],
+            [/me chamo (\w+)/i, 'nome'],
+            [/minha (?:matéria|materia) favorita (?:é|eh) (.+)/i, 'materia_favorita'],
+            [/sou da (?:turma|sala|série|serie) (.+)/i, 'turma'],
+            [/moro em (.+)/i, 'cidade'],
+            [/tenho (\d+) anos/i, 'idade'],
+            [/estudo (?:no|na) (.+)/i, 'escola'],
+            [/meu (?:animal|pet) (?:é|eh) (.+)/i, 'pet'],
         ];
-
-        patterns.forEach(pattern => {
-            const match = userMessage.match(pattern);
-            if (match) {
-                const key = match[0].substring(0, 50);
-                const value = match[1] || match[0];
-                this.memory[key] = value;
-                this.saveMemory();
-            }
+        patterns.forEach(([pattern, key]) => {
+            const match = userMsg.match(pattern);
+            if (match) { this.memory[key] = match[1]; this.saveMemory(); }
         });
-
-        // Comando explícito "lembre-se"
-        const rememberMatch = userMessage.match(/lembre-se:\s*(.+)/i);
-        if (rememberMatch) {
-            const parts = rememberMatch[1].split(/[:=]/);
-            if (parts.length >= 2) {
-                this.memory[parts[0].trim()] = parts.slice(1).join(':').trim();
-                this.saveMemory();
-            }
-        }
     }
 
-    // ========== INTERNET ==========
+    // ========== INTERNET REAL ==========
     toggleInternet() {
         this.internetMode = !this.internetMode;
-        const btn = document.getElementById('btn-internet');
-        
-        if (this.internetMode) {
-            btn.classList.add('active');
-            btn.title = 'Busca na internet ATIVADA';
-        } else {
-            btn.classList.remove('active');
-            btn.title = 'Ativar busca na internet';
-        }
+        document.getElementById('btn-internet').classList.toggle('active', this.internetMode);
     }
 
-    async searchInternet(query) {
+    async searchWeb(query) {
         try {
-            // Usa DuckDuckGo Instant Answer API (gratuita, sem chave)
-            const response = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`);
-            const data = await response.json();
+            const resp = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1`);
+            const data = await resp.json();
+            if (data.AbstractText) return data.AbstractText;
+            if (data.Abstract) return data.Abstract;
+            if (data.RelatedTopics?.length) return data.RelatedTopics[0].Text;
             
-            let result = '';
-            if (data.AbstractText) {
-                result += data.AbstractText + '\n';
-            }
-            if (data.RelatedTopics && data.RelatedTopics.length > 0) {
-                result += '\nTópicos relacionados:\n';
-                data.RelatedTopics.slice(0, 3).forEach(topic => {
-                    if (topic.Text) result += `• ${topic.Text}\n`;
-                });
-            }
+            // Tenta Wikipedia
+            const wikiResp = await fetch(`https://pt.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`);
+            const wikiData = await wikiResp.json();
+            if (wikiData.extract) return wikiData.extract.substring(0, 500);
             
-            return result || null;
-        } catch {
             return null;
-        }
+        } catch { return null; }
     }
 
     // ========== API ==========
-    async callLionel(userMessage, chatHistory) {
-        // Extrai memórias
-        this.extractMemories(userMessage, '');
-
-        // Detecta se é pesquisa na internet
-        let internetResult = null;
-        const searchMatch = userMessage.match(/pesquis(?:e|ar)(?: na internet)?:\s*(.+)/i);
-        
-        if (searchMatch || this.internetMode) {
-            const query = searchMatch ? searchMatch[1] : userMessage;
-            internetResult = await this.searchInternet(query);
-        }
-
-        // Constrói histórico
-        const recentHistory = chatHistory.slice(-10).map(m => 
-            `${m.type === 'user' ? 'Usuário' : 'Lionel'}: ${m.text}`
-        ).join('\n');
-
-        // Monta prompt completo
+    async callLionel(userMsg, history, contextInfo) {
+        const recentHistory = history.slice(-8).map(m => `${m.type === 'user' ? 'Usuário' : 'Lionel'}: ${m.text}`).join('\n');
         let prompt = this.buildSystemPrompt();
-        prompt += `\n\nHISTÓRICO DA CONVERSA:\n${recentHistory}\n`;
-        
-        if (internetResult) {
-            prompt += `\n\nRESULTADO DA PESQUISA NA INTERNET:\n${internetResult}\n\nUse essas informações na sua resposta.`;
-        }
-        
-        prompt += `\n\nUsuário: ${userMessage}\n\nLionel 🦁:`;
+        prompt += `\n\nCONVERSA RECENTE:\n${recentHistory}\n`;
+        if (contextInfo) prompt += contextInfo;
+        prompt += `\n\nUsuário: ${userMsg}\n\nLionel 🦁:`;
 
         return await this.callAPI(prompt);
     }
 
     async callAPI(prompt) {
         const { provider, apiKey, model, temperature } = this.config;
+        const body = provider === 'openai' || provider === 'deepseek'
+            ? { model: model || (provider === 'openai' ? 'gpt-3.5-turbo' : 'deepseek-chat'), messages: [{ role: 'user', content: prompt }], temperature, max_tokens: 1200 }
+            : { contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature, maxOutputTokens: 1200, topP: 0.95, topK: 40 } };
 
-        switch (provider) {
-            case 'gemini':
-                return await this.callGemini(prompt, apiKey, model, temperature);
-            case 'openai':
-                return await this.callOpenAI(prompt, apiKey, model, temperature);
-            case 'deepseek':
-                return await this.callDeepSeek(prompt, apiKey, model, temperature);
-            default:
-                return await this.callGemini(prompt, apiKey, model, temperature);
-        }
-    }
+        const url = provider === 'openai' ? 'https://api.openai.com/v1/chat/completions'
+            : provider === 'deepseek' ? 'https://api.deepseek.com/v1/chat/completions'
+            : `https://generativelanguage.googleapis.com/v1/models/${model || 'gemini-2.5-flash'}:generateContent?key=${apiKey}`;
 
-    async callGemini(prompt, apiKey, model, temperature) {
-        const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: {
-                        temperature,
-                        maxOutputTokens: 1000,
-                        topP: 0.95,
-                        topK: 40,
-                    }
-                })
-            }
-        );
-        const data = await response.json();
+        const headers = provider === 'openai' || provider === 'deepseek'
+            ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }
+            : { 'Content-Type': 'application/json' };
+
+        const resp = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+        const data = await resp.json();
         if (data.error) throw new Error(data.error.message);
-        return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || 'Hmm, minha juba deu um nó... Tenta de novo! 🦁';
+
+        return provider === 'openai' || provider === 'deepseek'
+            ? data.choices?.[0]?.message?.content?.trim() || 'Hmm... 🦁'
+            : data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || 'Hmm... 🦁';
     }
 
-    async callOpenAI(prompt, apiKey, model, temperature) {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify({
-                model: model || 'gpt-3.5-turbo',
-                messages: [{ role: 'user', content: prompt }],
-                temperature,
-                max_tokens: 1000,
-            })
-        });
-        const data = await response.json();
-        if (data.error) throw new Error(data.error.message);
-        return data.choices?.[0]?.message?.content?.trim() || 'Hmm... 🦁';
-    }
-
-    async callDeepSeek(prompt, apiKey, model, temperature) {
-        const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify({
-                model: model || 'deepseek-chat',
-                messages: [{ role: 'user', content: prompt }],
-                temperature,
-                max_tokens: 1000,
-            })
-        });
-        const data = await response.json();
-        if (data.error) throw new Error(data.error.message);
-        return data.choices?.[0]?.message?.content?.trim() || 'Hmm... 🦁';
-    }
-
-    // ========== CRÉDITOS ==========
-    updateCreditDisplay() {
-        const dot = document.querySelector('.credit-dot');
-        const text = document.getElementById('credit-text');
-        
-        if (!dot || !text) return;
-
-        if (!this.config.apiKey) {
-            dot.className = 'credit-dot';
-            text.textContent = 'API não configurada';
-        } else if (this.config.credits <= 0) {
-            dot.className = 'credit-dot ok';
-            text.textContent = 'Grátis / Ilimitado';
-        } else if (this.config.credits < this.config.creditAlert) {
-            dot.className = 'credit-dot low';
-            text.textContent = `Crédito baixo: $${this.config.credits.toFixed(2)}`;
-        } else {
-            dot.className = 'credit-dot ok';
-            text.textContent = `Saldo: $${this.config.credits.toFixed(2)}`;
-        }
-    }
-
-    // ========== CONFIGURAÇÕES ==========
+    // ========== CONFIG ==========
     saveAllConfig() {
         this.config.provider = document.getElementById('config-provider').value;
         this.config.apiKey = document.getElementById('config-apikey').value.trim();
         this.config.model = document.getElementById('config-model').value.trim();
         this.config.temperature = parseFloat(document.getElementById('config-temperature').value);
-        this.config.lionLevel = parseInt(document.getElementById('config-lion').value);
         this.config.credits = parseFloat(document.getElementById('config-credits').value) || 0;
-        this.config.creditAlert = parseFloat(document.getElementById('config-credit-alert').value) || 1.00;
-        
+        this.config.creditAlert = parseFloat(document.getElementById('config-credit-alert').value) || 1;
         this.saveConfig();
-        this.showApiStatus('✅ Configurações salvas!', 'success');
-        this.closeSettings();
-    }
-
-    async testApi() {
-        const statusDiv = document.getElementById('api-status');
-        statusDiv.textContent = '⏳ Testando conexão...';
-        statusDiv.className = 'api-status show loading';
-
-        this.config.apiKey = document.getElementById('config-apikey').value.trim();
-        this.config.model = document.getElementById('config-model').value.trim();
-        this.config.provider = document.getElementById('config-provider').value;
-
-        try {
-            const response = await this.callAPI('Responda apenas: SIM');
-            statusDiv.textContent = `✅ Conectado! Resposta: ${response.substring(0, 50)}`;
-            statusDiv.className = 'api-status show success';
-        } catch (error) {
-            statusDiv.textContent = `❌ ${error.message}`;
-            statusDiv.className = 'api-status show error';
-        }
-    }
-
-    showApiStatus(msg, type) {
-        const statusDiv = document.getElementById('api-status');
-        statusDiv.textContent = msg;
-        statusDiv.className = `api-status show ${type}`;
-        setTimeout(() => statusDiv.className = 'api-status', 3000);
-    }
-
-    openSettings() {
-        document.getElementById('settings-modal').classList.add('open');
-    }
-
-    closeSettings() {
         document.getElementById('settings-modal').classList.remove('open');
     }
 
-    toggleApiKey() {
-        const input = document.getElementById('config-apikey');
-        input.type = input.type === 'password' ? 'text' : 'password';
+    async testApi() {
+        const s = document.getElementById('api-status');
+        s.textContent = '⏳ Testando...'; s.className = 'api-status show loading';
+        this.config.apiKey = document.getElementById('config-apikey').value.trim();
+        this.config.provider = document.getElementById('config-provider').value;
+        try {
+            const r = await this.callAPI('Responda apenas: SIM');
+            s.textContent = `✅ OK! ${r.substring(0, 40)}`; s.className = 'api-status show success';
+        } catch(e) {
+            s.textContent = `❌ ${e.message}`; s.className = 'api-status show error';
+        }
+    }
+
+    updateCreditDisplay() {
+        const d = document.querySelector('.credit-dot');
+        const t = document.getElementById('credit-text');
+        if (!d || !t) return;
+        if (!this.config.apiKey) { d.className = 'credit-dot'; t.textContent = 'API não configurada'; }
+        else if (this.config.credits <= 0) { d.className = 'credit-dot ok'; t.textContent = 'Grátis'; }
+        else if (this.config.credits < this.config.creditAlert) { d.className = 'credit-dot low'; t.textContent = `Baixo: $${this.config.credits.toFixed(2)}`; }
+        else { d.className = 'credit-dot ok'; t.textContent = `$${this.config.credits.toFixed(2)}`; }
     }
 
     clearAll() {
-        if (confirm('Tem certeza? Isso vai apagar TODOS os chats e memórias!')) {
-            this.chats = [];
-            this.memory = {};
+        if (confirm('Apagar TUDO?')) {
+            this.chats = []; this.memory = {}; this.knowledgeBase = [];
             this.currentChatId = null;
-            
-            localStorage.removeItem('lionel_chats');
-            localStorage.removeItem('lionel_memory');
-            
-            const container = document.getElementById('chat-container');
-            const welcome = document.getElementById('welcome-screen');
-            container.innerHTML = '';
-            if (welcome) welcome.style.display = 'block';
-            
+            localStorage.removeItem('lionel_chats'); localStorage.removeItem('lionel_memory'); localStorage.removeItem('lionel_knowledge');
+            document.getElementById('chat-container').innerHTML = '';
+            const w = document.getElementById('welcome-screen');
+            if (w) w.style.display = 'block';
             this.saveChats();
-            this.closeSettings();
+            document.getElementById('settings-modal').classList.remove('open');
             this.createNewChat();
         }
     }
 }
 
-// Iniciar
-document.addEventListener('DOMContentLoaded', () => {
-    window.lionel = new LionelApp();
-});
+document.addEventListener('DOMContentLoaded', () => { window.lionel = new LionelApp(); });
