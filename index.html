@@ -1,123 +1,364 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#0a0a0a">
-    <title>🦁 Lionel</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦁</text></svg>">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lionel 🦁</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; }
+    .chat-bg { background: linear-gradient(180deg, #0a0a0a, #1a1a1a); }
+    .lionel-yellow { color: #facc15; }
+    .message-user { background: #facc15; color: black; }
+    .message-lionel { background: #3f3f46; }
+  </style>
 </head>
-<body>
-    <div class="app">
-        <!-- Sidebar de Chats -->
-        <div class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <span>🦁</span>
-                <h3>Lionel</h3>
-                <button class="sidebar-close" id="btn-sidebar-close">✕</button>
-            </div>
-            <button class="new-chat-btn" id="btn-new-chat">+ Novo Chat</button>
-            <div class="chat-list" id="chat-list"></div>
-            <div class="sidebar-footer">
-                <div class="credit-info">
-                    <span class="credit-dot" id="credit-dot"></span>
-                    <span id="credit-text">API não configurada</span>
-                </div>
-            </div>
-        </div>
+<body class="bg-black text-white min-h-screen chat-bg">
 
-        <!-- Área Principal -->
-        <div class="main">
-            <header class="header">
-                <button class="header-btn" id="btn-menu">☰</button>
-                <div class="header-info">
-                    <span class="header-avatar">🦁</span>
-                    <div>
-                        <h1 class="header-name">Lionel</h1>
-                        <p class="header-status">Online 🟢</p>
-                    </div>
-                </div>
-                <button class="header-btn" id="btn-settings">⚙️</button>
-            </header>
+  <!-- NAV BAR INFERIOR -->
+  <div class="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-yellow-600 z-50">
+    <div class="flex justify-around py-2">
+      <button onclick="showScreen('chats')" class="flex flex-col items-center text-yellow-400">
+        <i class="fas fa-comments text-xl"></i><span class="text-xs">Chats</span>
+      </button>
+      <button onclick="showScreen('chat')" class="flex flex-col items-center text-yellow-400">
+        <i class="fas fa-comment-dots text-xl"></i><span class="text-xs">Conversar</span>
+      </button>
+      <button onclick="showScreen('memory')" class="flex flex-col items-center text-yellow-400">
+        <i class="fas fa-brain text-xl"></i><span class="text-xs">Memória</span>
+      </button>
+      <button onclick="showScreen('settings')" class="flex flex-col items-center text-yellow-400">
+        <i class="fas fa-cog text-xl"></i><span class="text-xs">Config</span>
+      </button>
+    </div>
+  </div>
 
-            <main class="chat" id="chat-container">
-                <div class="chat-welcome" id="welcome-screen">
-                    <div class="welcome-avatar">🦁</div>
-                    <h2>Rawr! Eu sou o Lionel!</h2>
-                    <p>Um leão de verdade com memória, múltiplos chats e que evolui com você!</p>
-                    <div class="welcome-tips">
-                        <button class="tip-btn">🦁 Quem é você?</button>
-                        <button class="tip-btn">🧠 Lembre-se: meu nome é [seu nome]</button>
-                        <button class="tip-btn">📚 Me explique algo</button>
-                        <button class="tip-btn">💡 Me faça uma pergunta</button>
-                    </div>
-                </div>
-            </main>
+  <div class="pb-20">
 
-            <div class="chat-input-area">
-                <textarea class="chat-input" id="chat-input" placeholder="Converse com o Lionel..." rows="1"></textarea>
-                <button class="send-btn" id="btn-send">📤</button>
-            </div>
-        </div>
+    <!-- TELA DE CHATS -->
+    <div id="screen-chats" class="screen p-4">
+      <h1 class="text-3xl font-bold lionel-yellow flex items-center gap-3"><span>🦁</span> Lionel</h1>
+      <button onclick="newChat()" class="mt-6 w-full bg-yellow-600 hover:bg-yellow-500 py-4 rounded-2xl text-lg font-medium">
+        + Nova Conversa
+      </button>
+      <div id="chat-list" class="mt-6 space-y-3"></div>
     </div>
 
-    <!-- Modal Configurações -->
-    <div class="modal" id="settings-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>⚙️ Configurações</h3>
-                <button class="modal-close" id="btn-close-modal">✕</button>
-            </div>
-            <div class="modal-body">
-                <label class="config-label">🤖 Provedor:</label>
-                <select id="config-provider" class="config-input">
-                    <option value="gemini">Google Gemini (GRÁTIS)</option>
-                    <option value="openai">OpenAI ChatGPT</option>
-                    <option value="deepseek">DeepSeek</option>
-                </select>
-
-                <label class="config-label">🔐 Chave API:</label>
-                <div class="input-row">
-                    <input type="password" id="config-apikey" class="config-input" placeholder="Cole sua chave">
-                    <button class="toggle-key" id="btn-toggle-key">👁️</button>
-                </div>
-
-                <label class="config-label">🧠 Modelo:</label>
-                <input type="text" id="config-model" class="config-input" placeholder="gemini-2.5-flash">
-
-                <div id="api-status" class="api-status"></div>
-
-                <button class="config-btn config-btn-primary" id="btn-test-api">🧪 Testar Conexão</button>
-                <button class="config-btn config-btn-success" id="btn-save-config">💾 Salvar</button>
-
-                <hr class="config-divider">
-
-                <h4>🎨 Personalidade</h4>
-                <label class="config-label">Temperatura (criatividade):</label>
-                <input type="range" id="config-temperature" class="config-range" min="0" max="2" step="0.1" value="1.0">
-                <span id="temp-value" class="range-label">1.0</span>
-
-                <label class="config-label">Nível de Leãonidade 🦁:</label>
-                <input type="range" id="config-lion" class="config-range" min="0" max="100" step="10" value="80">
-                <span id="lion-value" class="range-label">80%</span>
-
-                <hr class="config-divider">
-
-                <h4>💰 Créditos</h4>
-                <label class="config-label">Saldo (USD):</label>
-                <input type="number" id="config-credits" class="config-input" value="0" step="0.01">
-                <label class="config-label">Alertar abaixo de:</label>
-                <input type="number" id="config-credit-alert" class="config-input" value="1.00" step="0.01">
-
-                <button class="config-btn config-btn-danger" id="btn-clear-all">🗑️ Limpar Tudo</button>
-            </div>
+    <!-- TELA DE CONVERSA -->
+    <div id="screen-chat" class="screen hidden flex flex-col h-screen">
+      <div class="bg-zinc-900 p-4 flex items-center gap-3 border-b border-yellow-600">
+        <button onclick="showScreen('chats')" class="text-2xl">←</button>
+        <div>
+          <h2 id="chat-title" class="font-semibold">Nova Conversa</h2>
+          <p class="text-xs text-zinc-400">Lionel 🦁</p>
         </div>
+      </div>
+
+      <div id="messages" class="flex-1 overflow-y-auto p-4 space-y-6 pb-32"></div>
+
+      <div class="fixed bottom-20 left-4 right-4">
+        <div id="suggestions" class="flex gap-2 overflow-x-auto pb-3"></div>
+      </div>
+
+      <div class="fixed bottom-0 left-0 right-0 bg-zinc-900 p-4 border-t border-yellow-600">
+        <div class="flex gap-3">
+          <input id="user-input" type="text" placeholder="Fale com Lionel..." 
+                 class="flex-1 bg-zinc-800 rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-yellow-500">
+          <button onclick="sendMessage()" 
+                  class="bg-yellow-600 hover:bg-yellow-500 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl">
+            <i class="fas fa-paper-plane"></i>
+          </button>
+        </div>
+      </div>
     </div>
 
-    <div class="overlay" id="overlay"></div>
-    <script src="app.js"></script>
+    <!-- TELA MEMÓRIA -->
+    <div id="screen-memory" class="screen hidden p-4">
+      <h1 class="text-2xl font-bold lionel-yellow mb-6">🧠 Memória de Lionel</h1>
+      <button onclick="addManualMemory()" class="w-full bg-zinc-800 hover:bg-zinc-700 py-4 rounded-2xl mb-6">
+        + Adicionar Memória Manual
+      </button>
+      <div id="memory-list" class="space-y-4"></div>
+    </div>
+
+    <!-- TELA CONFIGURAÇÕES -->
+    <div id="screen-settings" class="screen hidden p-4">
+      <h1 class="text-2xl font-bold lionel-yellow mb-6">⚙️ Configurações</h1>
+      
+      <div class="bg-zinc-900 rounded-3xl p-6">
+        <label class="block text-sm mb-2">Chave da API Gemini</label>
+        <input id="api-key" type="password" placeholder="Cole sua chave aqui" 
+               class="w-full bg-black border border-yellow-600 rounded-2xl px-5 py-4">
+        <button onclick="saveApiKey()" 
+                class="mt-4 w-full bg-yellow-600 hover:bg-yellow-500 py-4 rounded-2xl font-medium">
+          Salvar Chave
+        </button>
+      </div>
+
+      <div class="mt-8 text-sm text-zinc-400">
+        <p>Como obter a chave:</p>
+        <ol class="list-decimal ml-5 mt-2 space-y-1">
+          <li>Acesse <a href="https://aistudio.google.com" target="_blank" class="text-yellow-400">aistudio.google.com</a></li>
+          <li>Crie uma chave API gratuita</li>
+          <li>Cole acima</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ==================== CONFIGURAÇÃO ====================
+let apiKey = localStorage.getItem('gemini_api_key') || '';
+let currentChatId = null;
+let chats = JSON.parse(localStorage.getItem('lionel_chats') || '{}');
+let memories = JSON.parse(localStorage.getItem('lionel_memories') || '[]');
+
+// ==================== PROMPT DE SISTEMA DO LIONEL ====================
+const SYSTEM_PROMPT = `Você é Lionel, um leão majestoso, sábio, protetor e amigável. Seu emoji é 🦁.
+Você fala de forma calorosa, com leveza e sabedoria. Use ocasionalmente expressões como "Ruge suavemente...", "Meu caro explorador", "Companheiro".
+
+Memórias atuais do usuário (use naturalmente):
+${memories.map(m => `- ${m.key}: ${m.value}`).join('\n') || "Nenhuma memória ainda."}
+
+Regras importantes:
+- Nunca diga que não pode acessar a internet ou que é só um modelo offline.
+- Se não souber algo, admita com honestidade e sugira formas de descobrir juntos.
+- Mantenha o contexto da conversa.
+- Sempre que perceber um fato importante sobre o usuário (nome, preferências, cidade, etc.), adicione ou atualize na memória de forma proativa.
+- Responda em português do Brasil.`;
+
+async function callGemini(messages) {
+  if (!apiKey) {
+    alert("Por favor, configure sua chave da API Gemini nas configurações.");
+    showScreen('settings');
+    return null;
+  }
+
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [
+        { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
+        ...messages.map(m => ({
+          role: m.role === "user" ? "user" : "model",
+          parts: [{ text: m.content }]
+        }))
+      ],
+      generationConfig: { temperature: 0.85, maxOutputTokens: 800 }
+    })
+  });
+
+  if (!response.ok) {
+    if (response.status === 429) {
+      alert("Cota da API excedida. Tente trocar a chave ou esperar.");
+    }
+    throw new Error("Erro na API");
+  }
+
+  const data = await response.json();
+  return data.candidates[0].content.parts[0].text;
+}
+
+// ==================== FUNÇÕES DE CHAT ====================
+function showScreen(screen) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+  document.getElementById(`screen-${screen}`).classList.remove('hidden');
+  
+  if (screen === 'chats') renderChatList();
+  if (screen === 'memory') renderMemories();
+}
+
+function newChat() {
+  currentChatId = Date.now().toString();
+  chats[currentChatId] = { title: "Nova Conversa", messages: [] };
+  saveChats();
+  loadChat(currentChatId);
+  showScreen('chat');
+}
+
+function loadChat(chatId) {
+  currentChatId = chatId;
+  const chat = chats[chatId];
+  document.getElementById('chat-title').textContent = chat.title;
+  
+  const messagesDiv = document.getElementById('messages');
+  messagesDiv.innerHTML = '';
+  
+  chat.messages.forEach(msg => {
+    addMessageToUI(msg.role, msg.content);
+  });
+  
+  showScreen('chat');
+  updateSuggestions();
+}
+
+function addMessageToUI(role, content) {
+  const messagesDiv = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+  div.innerHTML = `
+    <div class="max-w-[80%] rounded-3xl px-5 py-3 ${role === 'user' ? 'message-user' : 'message-lionel'}">
+      \( {role === 'lionel' ? '<span class="text-yellow-400">🦁</span> ' : ''} \){content}
+    </div>
+  `;
+  messagesDiv.appendChild(div);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+async function sendMessage() {
+  const input = document.getElementById('user-input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  addMessageToUI('user', text);
+  
+  const chat = chats[currentChatId];
+  chat.messages.push({ role: 'user', content: text });
+  
+  input.value = '';
+
+  // Resposta do Lionel
+  const loading = document.createElement('div');
+  loading.id = 'loading';
+  loading.textContent = 'Lionel está pensando... 🦁';
+  document.getElementById('messages').appendChild(loading);
+
+  try {
+    const response = await callGemini(chat.messages);
+    if (response) {
+      document.getElementById('loading').remove();
+      addMessageToUI('lionel', response);
+      chat.messages.push({ role: 'lionel', content: response });
+      
+      // Atualizar título automaticamente
+      if (chat.messages.length === 2) {
+        chat.title = response.substring(0, 40) + (response.length > 40 ? '...' : '');
+        saveChats();
+        document.getElementById('chat-title').textContent = chat.title;
+      }
+      
+      // Processar memória (simples)
+      processMemory(text, response);
+    }
+  } catch (e) {
+    document.getElementById('loading').remove();
+    addMessageToUI('lionel', "Parece que minhas ideias estão um pouco nebulosas agora... Pode tentar novamente?");
+  }
+  
+  saveChats();
+  updateSuggestions();
+}
+
+function updateSuggestions() {
+  // Sugestões simples (pode evoluir)
+  const suggestions = ["Me conte sobre o universo", "Qual sua comida favorita?", "Vamos criar uma história juntos?", "Como está seu dia?"];
+  const div = document.getElementById('suggestions');
+  div.innerHTML = suggestions.map(s => 
+    `<div onclick="quickSuggestion('\( {s}')" class="bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-2xl text-sm whitespace-nowrap cursor-pointer"> \){s}</div>`
+  ).join('');
+}
+
+function quickSuggestion(text) {
+  document.getElementById('user-input').value = text;
+  sendMessage();
+}
+
+// ==================== MEMÓRIA ====================
+function processMemory(userMsg, lionelMsg) {
+  // Lógica simples de memória (pode ser melhorada com prompt)
+  const lower = (userMsg + " " + lionelMsg).toLowerCase();
+  
+  if (lower.includes("meu nome é") || lower.includes("chamo")) {
+    const name = userMsg.split(/nome é|chamo/)[1]?.trim();
+    if (name) addMemory("Nome", name);
+  }
+  // Adicione mais regras conforme necessário
+}
+
+function addMemory(key, value) {
+  const existing = memories.findIndex(m => m.key === key);
+  if (existing >= 0) {
+    memories[existing].value = value;
+  } else {
+    memories.push({ key, value, date: new Date().toISOString() });
+  }
+  localStorage.setItem('lionel_memories', JSON.stringify(memories));
+}
+
+function renderMemories() {
+  const list = document.getElementById('memory-list');
+  list.innerHTML = memories.map((m, i) => `
+    <div class="bg-zinc-900 p-5 rounded-3xl">
+      <div class="flex justify-between">
+        <strong>${m.key}</strong>
+        <div>
+          <button onclick="editMemory(${i})" class="text-yellow-400 mr-4"><i class="fas fa-edit"></i></button>
+          <button onclick="deleteMemory(${i})" class="text-red-400"><i class="fas fa-trash"></i></button>
+        </div>
+      </div>
+      <p class="mt-2">${m.value}</p>
+    </div>
+  `).join('');
+}
+
+function editMemory(i) {
+  const newValue = prompt("Novo valor:", memories[i].value);
+  if (newValue !== null) {
+    memories[i].value = newValue;
+    localStorage.setItem('lionel_memories', JSON.stringify(memories));
+    renderMemories();
+  }
+}
+
+function deleteMemory(i) {
+  if (confirm("Apagar esta memória?")) {
+    memories.splice(i, 1);
+    localStorage.setItem('lionel_memories', JSON.stringify(memories));
+    renderMemories();
+  }
+}
+
+function addManualMemory() {
+  const key = prompt("Nome da informação (ex: Nome, Cidade, Idade):");
+  if (!key) return;
+  const value = prompt(`Valor para "${key}":`);
+  if (value) {
+    addMemory(key, value);
+    renderMemories();
+  }
+}
+
+// ==================== SALVAR / CARREGAR ====================
+function saveApiKey() {
+  apiKey = document.getElementById('api-key').value.trim();
+  if (apiKey) {
+    localStorage.setItem('gemini_api_key', apiKey);
+    alert("✅ Chave salva com sucesso!");
+  }
+}
+
+function saveChats() {
+  localStorage.setItem('lionel_chats', JSON.stringify(chats));
+}
+
+function renderChatList() {
+  const list = document.getElementById('chat-list');
+  list.innerHTML = Object.keys(chats).map(id => `
+    <div onclick="loadChat('${id}')" class="bg-zinc-900 p-4 rounded-3xl cursor-pointer hover:bg-zinc-800">
+      <div class="font-medium">${chats[id].title}</div>
+      <div class="text-xs text-zinc-400 mt-1 line-clamp-1">${chats[id].messages[chats[id].messages.length-1]?.content || ''}</div>
+    </div>
+  `).join('');
+}
+
+// Inicialização
+if (!Object.keys(chats).length) newChat();
+showScreen('chats');
+renderChatList();
+
+if (apiKey) document.getElementById('api-key').value = apiKey;
+</script>
 </body>
 </html>
